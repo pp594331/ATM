@@ -1,6 +1,0 @@
-services:
-  - type: web
-    name: securevault-atm
-    env: native
-    buildCommand: g++ -O2 -std=c++17 main.cpp -o atm
-    startCommand: ./atm
