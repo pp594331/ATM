@@ -98,9 +98,54 @@ int main() {
 
         char buffer[10000];
         memset(buffer, 0, sizeof(buffer));
-        read(client_socket, buffer, sizeof(buffer)-1);
+        char buffer[10000];
+memset(buffer, 0, sizeof(buffer));
 
-        string req(buffer);
+int totalRead = 0;
+int bytesRead = read(client_socket, buffer, sizeof(buffer)-1);
+if(bytesRead <= 0) {
+    close(client_socket);
+    continue;
+}
+
+totalRead += bytesRead;
+string request(buffer, totalRead);
+
+// Find header end
+size_t headerEnd = request.find("\r\n\r\n");
+if(headerEnd == string::npos) {
+    close(client_socket);
+    continue;
+}
+
+string headers = request.substr(0, headerEnd);
+string body = "";
+
+// If POST → read full body using Content-Length
+if(request.find("POST") == 0) {
+
+    size_t clPos = headers.find("Content-Length:");
+    if(clPos != string::npos) {
+
+        clPos += 15;
+        while(headers[clPos] == ' ') clPos++;
+
+        size_t lineEnd = headers.find("\r\n", clPos);
+        int contentLength = stoi(headers.substr(clPos, lineEnd - clPos));
+
+        size_t bodyStart = headerEnd + 4;
+        body = request.substr(bodyStart);
+
+        // If body incomplete → keep reading
+        while((int)body.size() < contentLength) {
+            bytesRead = read(client_socket, buffer, sizeof(buffer)-1);
+            if(bytesRead <= 0) break;
+            body += string(buffer, bytesRead);
+        }
+
+        body = body.substr(0, contentLength);
+    }
+}
 
         size_t headerEnd = req.find("\r\n\r\n");
         string body = "";
@@ -180,3 +225,4 @@ int main() {
 
     return 0;
 }
+
